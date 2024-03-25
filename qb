@@ -1,0 +1,193 @@
+#!/bin/bash
+####################################################
+# AUTHOR: IAROM MADDEN
+# qutebrowser extensions/launchers
+####################################################
+
+# INIT 
+
+[ -n "$1" ] && { cmd="$1" ; shift 1 ; } || { cmd="win" ; }
+
+cache_dir_x="/home/$USER/.cache/qutebrowserx"
+cache_dir_m="/home/$USER/.cache/qutebrowser_mail"
+config_a=".config/qutebrowser/config.py"
+config_b=".config/qutebrowser/configb.py"
+
+qb_version='1.0.4'
+proto_version=1
+qute_bin="/usr/bin/qutebrowser"
+args=()
+args_startup=()
+
+
+# main #########################################
+
+_qute_pr() {
+  printf \
+    '{"args": ["%s"], "target_arg": "%s", "version": "%s", "protocol_version": %d, "cwd": "%s"}\n' \
+		  "${args[@]}" \
+			"${target}" \
+		  "${qb_version}" "${proto_version}" "${PWD}"; }
+
+_qute_socat() { _qute_pr | socat -lf /dev/null - UNIX-CONNECT:${socket_ipc} ; }
+
+_qute_start() { "$qute_bin" "${args_startup[@]}" ; }
+
+_qute_cmd()   { _qute_socat || _qute_start & }
+
+
+# primary instance ###################################
+
+_qa_init() {
+  [ "$@" ] && args+=("$@") || args+=(":open -w")
+  #echo "args: $args" && _qute_pr
+  args_startup+=( '--qt-flag' 'ignore-gpu-blacklist' )
+  args_startup+=( '--qt-flag' 'enable-gpu-rasterisation' )
+  args_startup+=( '--qt-flag' 'enable-native-gpu-memory-buffers' )
+  args_startup+=( '--qt-flag' 'num-raster-threads=4' )
+  args_startup+=( '--qt-flag' 'enable-accelerated-video-decode' )
+  args_startup+=( '--qt-flag' 'enable-features=VaapiVideoDecoder' )
+  args_startup+=( '--qt-flag' 'enable-features=WebGPU' )
+  args_startup+=( '--qt-flag' 'use-gl=desktop' )
+  args_startup+=( '--qt-flag' 'enable-oop-rasterization' )
+  args_startup+=( '--qt-flag' 'enable-raw-draw' )
+  args_startup+=( '--override-restore' )
+  #args_startup+=( ":greasemonkey-reload")
+  args_startup+=( "${@}" )
+  socket_ipc="${XDG_RUNTIME_DIR}/qutebrowser/ipc-$(echo -n "$USER" | md5sum | cut -d' ' -f1)" ;}
+
+_qa() {
+  _qa_init ${@}
+	_qute_cmd & }
+
+_qute() { _qa ${@}; } # alias for temporary back compatibility
+
+# secondary instances ################################
+
+_set_socket() {
+  socdir="${cache_dir}/runtime"
+	socket_ipc="${socdir}/$(ls ${socdir})" ;}
+
+_qx_init() {
+  [ "$@" ] && args+=("$@") && [ -n "$args" ] || args+=(":open -w")
+  cache_dir="${cache_dir_x}"
+  _set_socket
+	args_startup+=( '--basedir'   "$cache_dir" )
+  args_startup+=( '--config-py' "$config_b" ) ;}
+
+_qx() {
+  _qx_init ${@}
+  _qute_cmd; }
+
+
+# mutt instances ##################################
+
+#_qmutt_qb_pgrep() { state=$(pgrep -a qutebrowser | grep -- "--basedir $HOME/.cache/qutebrowser_mail"); }
+#_qmutt_qb_test() { if [ -n "$state" ]; then _qmutt_qb; sleep 3; fi; }
+
+_qm_init() {
+  cache_dir="/home/$USER/.cache/qutebrowser_mail"
+  args_startup+=( "--basedir"   "$cache_dir" )
+  args_startup+=( "--config-py" "$config_a" )
+  args_startup+=( '--override-restore' )
+  _set_socket ;}
+
+_qm_initx() {
+  [ "${@}" ] \
+    && args+=( ":tab-select 0/1 ;; open ${@}" ) \
+    || args+=( ":open -w" )
+  args_startup+=( ":open ${@}" ) ;}
+
+_qmx() { 
+  _qm_init
+  _qm_initx $@
+  _qute_cmd ;}
+
+_qm() { _qmx $@; }
+
+
+
+##############################################
+# WORKSPACE SETUP ############################
+# DESCRIPTION:
+# - W for 'w'orkspace setup
+# - Setting up workspaces in qutebrowser
+# - Automatically opening sets of urls
+# - Uses first cases to set the arguments
+# - Uses subsequent cases to open qutebrowser
+# TODO:
+# - Tidy up repeating code. Automate
+# - Use set -- $..
+#	- make this script a 'userscript' format specifically for quteb
+#	- Place in qutebrowser userscript dir..
+#	xTODO  Make compatible with integrated file
+# =====================================
+
+
+# QB MACROS ##################################
+
+loopx() { sleep 1s; for i in "$1"; do "$2" & done; }
+
+_qx_win() { # urls in new win
+	qb x win "${urls[0]}" #1st url in new win
+	loopx "${urls[@]:1}" 'qb x tab ${i}' ; }
+
+_qx_cur() { loopx "${urls[@]}" 'qb x tab ${i}' ; } # urls in cur win
+
+q_win() { # urls in new win
+	qb win "${urls[0]}"
+	loopx "${urls[@]}" 'qb tab ${i}' ; }
+
+q_wins() { for i in ${urls[@]}; do qb win ${i} & done; } # all in sep wins
+
+
+
+
+## COMMANDS ###################################
+
+_bookmarks_exp2html() { sed -E 's|^(\S+) ?(.*)|<a href="\1">\2</a>|' ~/.config/qutebrowser/bookmarks/urls > qutebrowser-bookmarks.html ;}
+		# export bookmarkds to a html format for cross browser importing
+
+
+# EXECUTE ####################################
+
+case $cmd in
+  # SET FIRST ARG #########################
+	w|win)          target="window" 	&& _qa "${@}" ;;
+	t|tab) 			    target="tab" 		  && _qa "${@}" ;;
+	c|cmd) 			    _qa "${@}" ;;
+	wf|win.float)	  _qa_float "${@}" ;; # TODO: refer to bottom
+  # secondaries ###########################
+	x)              target="window"   && _qx ${@} ;;
+	xw|xwin)        target="window"   && _qx ${@} ;; # dup of 'x'
+  xt|xtab)        target="tab"      && _qx ${@} ;;
+  xc|xcmd)        _qx ${@} ;;
+  m|qmutt)        _qm ${@} ;;
+  # cmds ##################################
+	books.export2html) _bookmarks_exp2html ;;
+  # workspaces  ###########################
+	w.soc) 			url_soc_b; 	_qx_win "${@}" ;;
+	w.oo) 			url_oo; 		q_win "${@}" ;;
+	w.oo.wins) 	url_oo;			q_wins "${@}" ;;
+	w.cm)				url_cm_a;		_qx_win "${@}" ;;
+	w.cm.ml) 		url_cm_a; url_soc_a; _qx_win "${@}";;
+	w.xx) 			w_xx ;;
+	w.wa|wa|whatsapp)   q_whatsapp ;;
+  w.gpt|gpt)          target="window"  && _qa "chat.openai.com" ;;
+  # catch all #############################
+  *)              target="window"   && _qa "$cmd" "${@}" ;;
+esac
+
+# TODO ##########################################
+# TODO: tidy up todo file in note docs in qb/..
+# TODO: use 'args' instead of $@ as the passing of args. THen i can use functions to add to the global var 'args'.
+# TODO?: _qx: set url as $qb_hm var at init; set runtime dir as var at init top of file
+
+# todo: set wm_class?? or just as a 'mark?' or as part of the floating ws?
+		#set -- "${@}" --qt-arg "WM_CLASS" "whatsapp"
+
+#_qute_socat() { _qute_pr | socat - UNIX-CONNECT:${socket_ipc} ; }
+
+# ARCHIVING: ##########################################
+#socat_cmd="socat -lf /dev/null - UNIX-CONNECT:${socket_ipc}"
+#args_startup+=( ':greasemonkey-reload -q' ) # issue was that a js script was not executable on the fs - and only loaded via this command after startup

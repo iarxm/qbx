@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+# fails to work - keeps feeding commands as urls
+# bash script works based on same functionality
+# may have to execute the final command like a cli command to correctly adjust
+import os
+import json
+import socket
+import subprocess
+import sys
+
+def send_command_to_qutebrowser(command):
+    # Construct the JSON command
+    json_command = json.dumps({
+        "args": [command],
+        "target_arg": "",
+        "protocol_version": 1
+    }) + '\n'
+
+    # Find the socket - this may vary depending on your setup
+    socket_path = None
+    socket_dir = f"/run/user/{os.getuid()}/qutebrowser"
+    for filename in os.listdir(socket_dir):
+        if filename.startswith("ipc-"):
+            socket_path = os.path.join(socket_dir, filename)
+            break
+
+    if socket_path is None:
+        print("Qutebrowser socket not found.")
+        return
+
+    # Send the command to the Qutebrowser socket
+    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
+        try:
+            client.connect(socket_path)
+            print(socket_path)
+            print(json_command.encode('utf-8'))
+            client.sendall(json_command.encode('utf-8'))
+            #file_object = client.makefile('w')
+            #file_object.write(json_command)
+            #file_object.flush()  # Ensure the command is sent
+            #client.send(json_command.encode('utf-8'))
+        finally:
+            client.close()
+
+
+def open_in_qutebrowser(file_path, tab_id=0):
+    # Replace tab-select and open commands as per your requirement
+    send_command_to_qutebrowser(f"tab-select {tab_id}")
+    send_command_to_qutebrowser(f"open -t {file_path}")
+
+    
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        open_in_qutebrowser(sys.argv[1])
+    else:
+        print("No file path provided.")
+
+
