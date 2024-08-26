@@ -2,164 +2,141 @@
 # AUTHOR: IAROM MADDEN think@iarom.org
 # qutebrowser launcher
 
-# INIT 
+
+# init ########################################
+
 
 [ -n "$1" ] && { cmd="$1" ; shift 1; } || { cmd="$def" ; }
 
+
 _init() {
-  cache_dir_x="/home/$USER/.cache/qutebrowserx"
-  cache_dir_m="/home/$USER/.cache/qutebrowser_mail"
-  config_a="$HOME/.config/qutebrowser/config.py"
+
+  cac_dir_x="/home/$USER/.cache/qutebrowserx"
+  cac_dir_m="/home/$USER/.cache/qutebrowserm"
+  config_a="$HOME/.config/qutebrowser/configa.py"
   config_b="$HOME/.config/qutebrowser/configb.py"
+  qute_bin="/usr/bin/qutebrowser"
   qb_version='1.0.4'
   proto_version=1
-  qute_bin="/usr/bin/qutebrowser"
   args=()
   args_startup=() ;}
 
 
 # main #########################################
 
-_qute_pr() {
+
+_qute_prn() {
+  
   printf \
     '{"args": ["%s"], "target_arg": "%s", "version": "%s", "protocol_version": %d, "cwd": "%s"}\n' \
 		  "${args[@]}" \
 			"${target}" \
 		  "${qb_version}" "${proto_version}" "${PWD}"; }
 
-_qute_socat() { _qute_pr | socat -lf /dev/null - UNIX-CONNECT:${socket_ipc} ; }
 
-_qute_start() { "$qute_bin" "${args_startup[@]}" ; }
+_qute_soc() { _qute_prn | socat -lf /dev/null - UNIX-CONNECT:${soc_ipc} ; }
 
-_qute_cmd()   { _qute_socat || _qute_start & }
+_qute_cmd() { _qute_soc || "$qute_bin" "${args_startup[@]}" & }
 
 
 # primary instance ###################################
 
+
+_qa_ini_qt() {
+
+  args_startup+=( '--qt-flag' 'ignore-gpu-blacklist' )
+  args_startup+=( '--qt-flag' 'enable-gpu-rasterisation' )
+  args_startup+=( '--qt-flag' 'enable-native-gpu-memory-buffers' )
+  args_startup+=( '--qt-flag' 'num-raster-threads=4' )
+  args_startup+=( '--qt-flag' 'enable-accelerated-video-decode' )
+  args_startup+=( '--qt-flag' 'enable-features=VaapiVideoDecoder' )
+  args_startup+=( '--qt-flag' 'enable-features=WebGPU' )
+  args_startup+=( '--qt-flag' 'use-gl=desktop' )
+  args_startup+=( '--qt-flag' 'enable-oop-rasterization' )
+  args_startup+=( '--qt-flag' 'enable-raw-draw' ) ;}
+  
+
 _qa_init() {
-  [ -n "${@}" ] && args+=("${@}") || args+=("")
-  [ -n $args ] && args+=("")
-  #[ -n "${@}" ] && args+=("${@}") || args+=(":open -w")
-  #args_startup+=( '--qt-flag' 'ignore-gpu-blacklist' )
-  #args_startup+=( '--qt-flag' 'enable-gpu-rasterisation' )
-  #args_startup+=( '--qt-flag' 'enable-native-gpu-memory-buffers' )
-  #args_startup+=( '--qt-flag' 'num-raster-threads=4' )
-  #args_startup+=( '--qt-flag' 'enable-accelerated-video-decode' )
-  #args_startup+=( '--qt-flag' 'enable-features=VaapiVideoDecoder' )
-  #args_startup+=( '--qt-flag' 'enable-features=WebGPU' )
-  #args_startup+=( '--qt-flag' 'use-gl=desktop' )
-  #args_startup+=( '--qt-flag' 'enable-oop-rasterization' )
-  #args_startup+=( '--qt-flag' 'enable-raw-draw' )
-  #args_startup+=( '--override-restore' )
-  #args_startup+=( ":greasemonkey-reload")
-  args_startup+=( "${@}" )
-  socket_ipc="${XDG_RUNTIME_DIR}/qutebrowser/ipc-$(echo -n "$USER" | md5sum | cut -d' ' -f1)" ;}
+    
+    [ -n "${@}" ] && args+=("${@}") || args+=("")
+    [ -n $args ]  && args+=("")
+
+    args_startup+=( "${@}" )
+    soc_ipc="$(echo {XDG_RUNTIME_DIR}/qutebrowser/*)" ;}
+  
 
 _qa() {
+
   _qa_init ${@}
 	_qute_cmd & }
 
-_qute() { _qa ${@}; } # alias for temporary back compatibility
 
 # secondary instances ################################
 
-_set_socket() {
-  socdir="${cache_dir}/runtime"
-	socket_ipc="${socdir}/$(ls ${socdir})" ;}
+_set_socket() { soc_ipc="$(echo ${cac_dir}/runtime/*)" ;}
 
-_qx_init() {
+_qx_ini() {
   [ "$@" ] && args+=("$@") && [ -n "$args" ] || args+=(":open -w")
-  cache_dir="${cache_dir_x}"
+  cac_dir="${cac_dir_x}"
   _set_socket
-	args_startup+=( '--basedir'   "$cache_dir" )
+	args_startup+=( '--basedir'   "$cac_dir" )
   args_startup+=( '--config-py' "$config_b" ) ;}
 
 _qx() {
-  _qx_init ${@}
+  _qx_ini ${@}
   _qute_cmd; }
 
 
 # profile: mutt ##################################
 
 
-_qm_init() {
-  cache_dir="/home/$USER/.cache/qutebrowser_mail"
-  args_startup+=( "--basedir"   "$cache_dir" )
-  args_startup+=( "--config-py" "$config_a" )
-  args_startup+=( '--override-restore' )
-  _set_socket ;}
+_qm() {
 
-_qm_initx() {
+  #cac_dir="/home/$USER/.cache/qutebrowser_mail"
+  #cac_dir="/home/$USER/.cache/qutebrowser_mail"
+  args_startup+=( "--basedir"          "$cac_dir" )
+  args_startup+=( "--config-py"        "$config_a" )
+  args_startup+=( '--override-restore' )
+  _set_socket
+
   [ "${@}" ] \
     && args+=( ":tab-select 0/1 ;; open ${@}" ) \
     || args+=( ":open -w" )
-  args_startup+=( ":open ${@}" ) ;}
+  args_startup+=( ":open ${@}" ) 
 
-_qmx() { 
-  _qm_init
-  _qm_initx $@
-  _qute_cmd ;}
-
-_qm() { _qmx $@; }
+  _qute_cmd;}
 
 
-# WORKSPACE SETUP ############################
-# DESCRIPTION:
-# - W for 'w'orkspace setup
-# - Setting up workspaces in qutebrowser
-# - Automatically opening sets of urls
-# - Uses first cases to set the arguments
-# - Uses subsequent cases to open qutebrowser
-# TODO:
-# x- Tidy up repeating code. Automate
-# - Use set -- $..
-#	- make this script a 'userscript' format specifically for quteb
-#	- Place in qutebrowser userscript dir..
-#	xTODO  Make compatible with integrated file
-# =====================================
+# main ####################################
 
+_main() {
 
-# QB MACROS ##################################
-
-loopx() { sleep 1s; for i in "$1"; do "$2" & done; }
-
-_qx_win() { # urls in new win
-	qb x win "${urls[0]}" #1st url in new win
-	loopx "${urls[@]:1}" 'qb x tab ${i}' ; }
-
-_qx_cur() { loopx "${urls[@]}" 'qb x tab ${i}' ; } # urls in cur win
-
-q_win() { # urls in new win
-	qb win "${urls[0]}"
-	loopx "${urls[@]}" 'qb tab ${i}' ; }
-
-q_wins() { for i in ${urls[@]}; do qb win ${i} & done; } # all in sep wins
-
-
-# EXECUTE ####################################
-_exc() {
   _init
   case $cmd in
-    w|win)          target="window" 	&& _qa "${@}" ;;
-    t|tab) 			    target="tab" 		  && _qa "${@}" ;;
-    c|cmd) 			    _qa "${@}" ;;
-    wf|win.float)	  _qa_float "${@}" ;; # TODO: refer to bottom
-    # secondaries ###########################
-    x)              target="window"   && _qx ${@} ;;
-    xw|xwin)        target="window"   && _qx ${@} ;; # dup of 'x'
-    xt|xtab)        target="tab"      && _qx ${@} ;;
-    xc|xcmd)        _qx ${@} ;;
-    m|qmutt)        _qm ${@} ;;
-    # workspaces  ###########################
-    w.soc) 			    url_soc_b; 	_qx_win "${@}" ;;
-    w.oo) 			    url_oo; 		q_win "${@}" ;;
-    w.oo.wins) 	    url_oo;			q_wins "${@}" ;;
-    w.cm)				    url_cm_a;		_qx_win "${@}" ;;
-    w.cm.ml) 		    url_cm_a; url_soc_a; _qx_win "${@}";;
-    w.xx) 			    w_xx ;;
-    w.wa|wa|whatsapp)   q_whatsapp ;;
-    w.gpt|gpt)          target="window"  && _qa "chat.openai.com" ;;
-    *)              target="window"   && _qa "$cmd" "${@}" ;;
+    w|win)             target="window" 	&& _qa "${@}" ;;
+    t|tab) 			       target="tab" 		  && _qa "${@}" ;;
+    c|cmd) 			       _qa "${@}" ;;
+    wf|win.float)	     _qa_float "${@}" ;; # TODO: refer to bottom
+    # secondaries
+    x)                 target="window"   && _qx ${@} ;;
+    xw|xwin)           target="window"   && _qx ${@} ;; # dup of 'x'
+    xt|xtab)           target="tab"      && _qx ${@} ;;
+    xc|xcmd)           _qx ${@} ;;
+    m|qmutt)           _qm ${@} ;;
+    # web apps
+    w.xx) 			       w_xx ;;
+    w.wa|wa|whatsapp)  q_whatsapp ;;
+    w.gpt|gpt)         target="window"  && _qa "chat.openai.com" ;;
+    # workspaces
+    w.soc) 			       url_soc_b; 	_qx_win "${@}" ;;
+    w.oo) 			       url_oo; 		q_win "${@}" ;;
+    w.oo.wins) 	       url_oo;			q_wins "${@}" ;;
+    w.cm)				       url_cm_a;		_qx_win "${@}" ;;
+    w.cm.ml) 		       url_cm_a; url_soc_a; _qx_win "${@}";;
+    
+    *)                 target="window"   && _qa "$cmd" "${@}" ;;
   esac }
 
-_exc ${@}
+
+_main ${@}
+
