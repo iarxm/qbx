@@ -15,6 +15,7 @@ _init() {
   cac_dir_m="/home/$USER/.cache/qutebrowserm"
   config_a="$HOME/.config/qutebrowser/configa.py"
   config_b="$HOME/.config/qutebrowser/configb.py"
+  config_m="$HOME/.config/qutebrowser/configm.py"
   qute_bin="/usr/bin/qutebrowser"
   qb_version='1.0.4'
   proto_version=1
@@ -95,7 +96,7 @@ _qm() {
   #cac_dir="/home/$USER/.cache/qutebrowser_mail"
   #cac_dir="/home/$USER/.cache/qutebrowser_mail"
   args_startup+=( "--basedir"          "$cac_dir" )
-  args_startup+=( "--config-py"        "$config_a" )
+  args_startup+=( "--config-py"        "$config_m" )
   args_startup+=( '--override-restore' )
   _set_socket
 
