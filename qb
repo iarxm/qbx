@@ -11,8 +11,9 @@
 
 _init() {
 
-  cac_dir_x="/home/$USER/.cache/qutebrowserx"
+  cac_dir_b="/home/$USER/.cache/qutebrowserb"
   cac_dir_m="/home/$USER/.cache/qutebrowserm"
+  cac_dir=""
   config_a="$HOME/.config/qutebrowser/configa.py"
   config_b="$HOME/.config/qutebrowser/configb.py"
   config_m="$HOME/.config/qutebrowser/configm.py"
@@ -72,38 +73,45 @@ _qa() {
 	_qute_cmd & }
 
 
-# secondary instances ################################
-
 _set_socket() { soc_ipc="$(echo ${cac_dir}/runtime/*)" ;}
 
+
+# secondary instances ################################
+
+
 _qx_ini() {
-  [ "$@" ] && args+=("$@") && [ -n "$args" ] || args+=(":open -w")
-  cac_dir="${cac_dir_x}"
-  _set_socket
-	args_startup+=( '--basedir'   "$cac_dir" )
-  args_startup+=( '--config-py' "$config_b" ) ;}
+
+    [ "$@" ] && args+=(":open -t $@") || args+=(":open -w")
+    cac_dir="${cac_dir_b}"
+    _set_socket
+    
+    if [[ ! $(echo $soc_ipc | grep -q "ipc") ]]; then
+        args_startup+=( '--basedir'   "$cac_dir" )
+        args_startup+=( '--config-py' "$config_b" )
+    fi
+}
+
 
 _qx() {
-  _qx_ini ${@}
-  _qute_cmd; }
+
+    _qx_ini ${@}
+    _qute_cmd;}
 
 
 # profile: mutt ##################################
 
 
 _qm() {
-
-  #cac_dir="/home/$USER/.cache/qutebrowser_mail"
-  #cac_dir="/home/$USER/.cache/qutebrowser_mail"
-  args_startup+=( "--basedir"          "$cac_dir" )
-  args_startup+=( "--config-py"        "$config_m" )
-  args_startup+=( '--override-restore' )
-  _set_socket
+    cac_dir="${cac_dir_m}"
+    _set_socket
+    args_startup+=( "--basedir"          "$cac_dir_m" )
+    args_startup+=( "--config-py"        "$config_m" )
+    args_startup+=( '--override-restore' )
 
   [ "${@}" ] \
     && args+=( ":tab-select 0/1 ;; open ${@}" ) \
     || args+=( ":open -w" )
-  args_startup+=( ":open ${@}" ) 
+    #args_startup+=( ":open ${@}" ) 
 
   _qute_cmd;}
 
@@ -115,9 +123,9 @@ _main() {
   _init
   case $cmd in
     w|win)             target="window" 	&& _qa "${@}" ;;
-    t|tab) 			       target="tab" 		  && _qa "${@}" ;;
-    c|cmd) 			       _qa "${@}" ;;
-    wf|win.float)	     _qa_float "${@}" ;; # TODO: refer to bottom
+    t|tab) 			   target="tab" 		  && _qa "${@}" ;;
+    c|cmd) 			   _qa "${@}" ;;
+    wf|win.float)	   _qa_float "${@}" ;; # TODO: refer to bottom
     # secondaries
     x)                 target="window"   && _qx ${@} ;;
     xw|xwin)           target="window"   && _qx ${@} ;; # dup of 'x'
