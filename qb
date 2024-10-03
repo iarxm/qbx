@@ -19,10 +19,10 @@ _init() {
     soc_ipc="${XDG_RUNTIME_DIR}/qutebrowser/ipc-$(echo -n "$USER" | md5sum | cut -d' ' -f1)"
     cac_dir=""
     cfg_fil=""
-    cac_dir_x="/home/$USER/.cache/qutebrowserb"
+    cac_dir_x="/home/$USER/.cache/qutebrowserx"
     cac_dir_m="/home/$USER/.cache/qutebrowserm"
-    config_x="$HOME/.config/qutebrowser/configb.py"
-    config_m="$HOME/.config/qutebrowser/configm.py"
+    config_x="$HOME/.config/qutebrowser/cfx.py"
+    config_m="$HOME/.config/qutebrowser/cfm.py"
 }
 
 _qq_ini_qt() {
@@ -37,6 +37,11 @@ _qq_ini_qt() {
   args_startup+=( '--qt-flag' 'enable-oop-rasterization' )
   args_startup+=( '--qt-flag' 'enable-raw-draw' ) ;}
 
+_ini_profile() { # set up on new system
+    /usr/share/qutebrowser/scripts/dictcli.py install en-GB
+    ln -s $HOME/.local/share/qutebrowser/qtwebengine_dictionaries $HOME/.cache/qutebrowserx/data/
+    ln -s $HOME/.local/share/qutebrowser/qtwebengine_dictionaries $HOME/.cache/qutebrowserm/data/
+}
 
 # main #########################################
 
