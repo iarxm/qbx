@@ -1,51 +1,31 @@
-#!/bin/bash
-# AUTHOR: IAROM MADDEN think@iarom.org
+#!/bin/env bash
+# author: iarom madden mail@iarom.org
 # qutebrowser launcher
 
 
 # init ########################################
 
 
-[ -n "$1" ] && { cmd="$1" ; shift 1; } || { cmd="$def" ; }
+[ -n "$1" ] && { cmd="$1" ; shift 1; }
 
 
 _init() {
+    qute_bin="/usr/bin/qutebrowser"
+    qb_version='3.2.1'
+    proto_version=1
+    args=()
+    args_startup=() 
+    #soc_ipc="$(echo ${XDG_RUNTIME_DIR}/qutebrowser/*)"
+    soc_ipc="${XDG_RUNTIME_DIR}/qutebrowser/ipc-$(echo -n "$USER" | md5sum | cut -d' ' -f1)"
+    cac_dir=""
+    cfg_fil=""
+    cac_dir_x="/home/$USER/.cache/qutebrowserb"
+    cac_dir_m="/home/$USER/.cache/qutebrowserm"
+    config_x="$HOME/.config/qutebrowser/configb.py"
+    config_m="$HOME/.config/qutebrowser/configm.py"
+}
 
-  cac_dir_b="/home/$USER/.cache/qutebrowserb"
-  cac_dir_m="/home/$USER/.cache/qutebrowserm"
-  cac_dir=""
-  config_a="$HOME/.config/qutebrowser/configa.py"
-  config_b="$HOME/.config/qutebrowser/configb.py"
-  config_m="$HOME/.config/qutebrowser/configm.py"
-  qute_bin="/usr/bin/qutebrowser"
-  qb_version='1.0.4'
-  proto_version=1
-  args=()
-  args_startup=() ;}
-
-
-# main #########################################
-
-
-_qute_prn() {
-  
-  printf \
-    '{"args": ["%s"], "target_arg": "%s", "version": "%s", "protocol_version": %d, "cwd": "%s"}\n' \
-		  "${args[@]}" \
-			"${target}" \
-		  "${qb_version}" "${proto_version}" "${PWD}"; }
-
-
-_qute_soc() { _qute_prn | socat -lf /dev/null - UNIX-CONNECT:${soc_ipc} ; }
-
-_qute_cmd() { _qute_soc || "$qute_bin" "${args_startup[@]}" & }
-
-
-# primary instance ###################################
-
-
-_qa_ini_qt() {
-
+_qq_ini_qt() {
   args_startup+=( '--qt-flag' 'ignore-gpu-blacklist' )
   args_startup+=( '--qt-flag' 'enable-gpu-rasterisation' )
   args_startup+=( '--qt-flag' 'enable-native-gpu-memory-buffers' )
@@ -56,96 +36,102 @@ _qa_ini_qt() {
   args_startup+=( '--qt-flag' 'use-gl=desktop' )
   args_startup+=( '--qt-flag' 'enable-oop-rasterization' )
   args_startup+=( '--qt-flag' 'enable-raw-draw' ) ;}
-  
 
-_qa_init() {
-    
-    [ -n "${@}" ] && args+=("${@}") || args+=("")
-    [ -n $args ]  && args+=("")
 
-    args_startup+=( "${@}" )
-    soc_ipc="$(echo {XDG_RUNTIME_DIR}/qutebrowser/*)" ;}
-  
+# main #########################################
+
+# factoring here was to make clear the structure of multiple layers of piping
+
+_qute_str() { "$qute_bin" "${args_startup[@]}" & }
+
+_qute_cmd() { # order of items matters; highly unstable to format innacuracies
+    printf '{"args": ["%s"], "target_arg": null, "version": "%s", "protocol_version": %d, "cwd": "%s"}\n' \
+       "${args}" \
+       "${qb_version}" \
+       "${proto_version}" \
+       "${PWD}" | socat -lf /dev/null - UNIX-CONNECT:"${soc_ipc}" || _qute_str &
+}
+
+# primary instance ###################################
 
 _qa() {
+    [ -n "${@}" ] && args+=(":open -t ${@}") || args+=(":open -w")
 
-  _qa_init ${@}
-	_qute_cmd & }
+    # TODO: modify qute_bin
+    args_startup+=( "${@}" )
+
+    _qute_cmd & }
+
+
+# non-default profiles / instances ################################
 
 
 _set_socket() { soc_ipc="$(echo ${cac_dir}/runtime/*)" ;}
 
+_qq_ini() {
 
-# secondary instances ################################
+    args_startup+=( "--basedir"          "$cac_dir" )
+    args_startup+=( "--config-py"        "$cfg_fil" )
+
+    _set_socket;}
 
 
-_qx_ini() {
-
-    [ "$@" ] && args+=(":open -t $@") || args+=(":open -w")
-    cac_dir="${cac_dir_b}"
-    _set_socket
-    
-    if [[ ! $(echo $soc_ipc | grep -q "ipc") ]]; then
-        args_startup+=( '--basedir'   "$cac_dir" )
-        args_startup+=( '--config-py' "$config_b" )
-    fi
-}
-
+# profile x #######################################
 
 _qx() {
+    [ -n "${@}" ] && args+=(":open -t $@") || args+=(":open -w")
+    cac_dir="${cac_dir_x}"
+    cfg_fil="${config_x}"
 
-    _qx_ini ${@}
+    _qq_ini
     _qute_cmd;}
 
 
-# profile: mutt ##################################
-
+# profile: mutt / mail #############################
 
 _qm() {
-    cac_dir="${cac_dir_m}"
-    _set_socket
-    args_startup+=( "--basedir"          "$cac_dir_m" )
-    args_startup+=( "--config-py"        "$config_m" )
+    [ "${@}" ] \
+        && args+=( ":tab-select 0/1 ;; open ${@}" ) \
+        || args+=( ":open -w" )
+    #args_startup+=( ":open ${@}" ) 
     args_startup+=( '--override-restore' )
 
-  [ "${@}" ] \
-    && args+=( ":tab-select 0/1 ;; open ${@}" ) \
-    || args+=( ":open -w" )
-    #args_startup+=( ":open ${@}" ) 
+    cac_dir="${cac_dir_m}"
+    cfg_fil="${config_m}"
 
-  _qute_cmd;}
+    _qq_ini
+    _qute_cmd;}
 
 
 # main ####################################
 
 _main() {
 
-  _init
-  case $cmd in
-    w|win)             target="window" 	&& _qa "${@}" ;;
-    t|tab) 			   target="tab" 		  && _qa "${@}" ;;
-    c|cmd) 			   _qa "${@}" ;;
-    wf|win.float)	   _qa_float "${@}" ;; # TODO: refer to bottom
-    # secondaries
-    x)                 target="window"   && _qx ${@} ;;
-    xw|xwin)           target="window"   && _qx ${@} ;; # dup of 'x'
-    xt|xtab)           target="tab"      && _qx ${@} ;;
-    xc|xcmd)           _qx ${@} ;;
-    m|qmutt)           _qm ${@} ;;
-    # web apps
-    w.xx) 			       w_xx ;;
-    w.wa|wa|whatsapp)  q_whatsapp ;;
-    w.gpt|gpt)         target="window"  && _qa "chat.openai.com" ;;
-    # workspaces
-    w.soc) 			       url_soc_b; 	_qx_win "${@}" ;;
-    w.oo) 			       url_oo; 		q_win "${@}" ;;
-    w.oo.wins) 	       url_oo;			q_wins "${@}" ;;
-    w.cm)				       url_cm_a;		_qx_win "${@}" ;;
-    w.cm.ml) 		       url_cm_a; url_soc_a; _qx_win "${@}";;
-    
-    *)                 target="window"   && _qa "$cmd" "${@}" ;;
-  esac }
+    _init
+
+    case $cmd in
+        # profile a
+        w|win)            target="window" && _qa "${@}" ;;
+        t|tab)            target="tab"    && _qa "${@}" ;;
+        c|cmd)            _qa "${@}" ;;
+        f|win.float)      _qa_float "${@}" ;; # TODO: refer to bottom
+        # profile x
+        xw|xwin|x)        target="window"   && _qx ${@} ;; # dup of 'x'
+        xt|xtab)          target="tab"      && _qx ${@} ;;
+        xc|xcmd)          _qx ${@} ;;
+        # profile m
+        mw|mwin)          target="window"   && _qm ${@} ;;
+        mt|mtab)          target="window"   && _qm ${@} ;;
+        mc|qmutt|m)       _qm ${@} ;;
+        # web apps # TODO: add these to eg shell aliases or i3x
+        w.gpt|gpt)        target="window"  && _qa "chat.openai.com" ;;
+        #w.wa|wa|whatsapp) q_whatsapp ;;
+        #w.xx) 	          w_xx ;;
+        # default / catch-all
+        *)                _qa "${cmd}" "${@}" ;;
+    esac }
 
 
 _main ${@}
+
 
