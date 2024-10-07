@@ -62,9 +62,14 @@ _qute_cmd() { # order of items matters; highly unstable to format innacuracies
 _qa() {
     [ -n "${@}" ] && args+=(":open -t ${@}") || args+=(":open -w")
 
-    # TODO: modify qute_bin
+    # TODO: modify qute_bin?
     args_startup+=( "${@}" )
 
+    _qute_cmd & }
+
+_qab() { # open url in new window
+    args+=(":open -w ${@}")
+    args_startup+=( "${@}" )
     _qute_cmd & }
 
 
@@ -116,8 +121,8 @@ _main() {
 
     case $cmd in
         # profile a
-        w|win)            target="window" && _qa "${@}" ;;
-        t|tab)            target="tab"    && _qa "${@}" ;;
+        w|win)            target="window"   && _qa "${@}" ;;
+        t|tab)            target="tab"      && _qa "${@}" ;;
         c|cmd)            _qa "${@}" ;;
         f|win.float)      _qa_float "${@}" ;; # TODO: refer to bottom
         # profile x
@@ -129,7 +134,7 @@ _main() {
         mt|mtab)          target="window"   && _qm ${@} ;;
         mc|qmutt|m)       _qm ${@} ;;
         # web apps # TODO: add these to eg shell aliases or i3x
-        w.gpt|gpt)        target="window"  && _qa "chat.openai.com" ;;
+        w.gpt|gpt)        target="window"   && _qab "chat.openai.com" ;;
         #w.wa|wa|whatsapp) q_whatsapp ;;
         #w.xx) 	          w_xx ;;
         # default / catch-all
