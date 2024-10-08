@@ -135,7 +135,7 @@ _main() {
         mc|qmutt|m)       _qm ${@} ;;
         # web apps # TODO: add these to eg shell aliases or i3x
         w.gpt|gpt)        target="window"   && _qab "chat.openai.com" ;;
-        #w.wa|wa|whatsapp) q_whatsapp ;;
+        w.wa|wa|whatsapp) target="window"   && _qab "web.whatsapp.com" ;;
         #w.xx) 	          w_xx ;;
         # default / catch-all
         *)                _qa "${cmd}" "${@}" ;;
