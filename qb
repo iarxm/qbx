@@ -103,7 +103,7 @@ _qm() {
     [ "${@}" ] \
         && args+=( ":tab-select 0/1 ;; open ${@}" ) \
         || args+=( ":open -w" )
-    #args_startup+=( ":open ${@}" ) 
+    args_startup+=( ":open ${@}" ) 
     args_startup+=( '--override-restore' )
 
     cac_dir="${cac_dir_m}"
