@@ -65,28 +65,28 @@ _qute_cmd() { # order of items matters; highly unstable to format innacuracies
 # primary instance ###################################
 
 _mli() {
-    
     ses_fil="${dat_dir}/sessions/_autosave.yml"
     grep -q "url: ${1}" ${ses_fil} \
         && args+=( ":tab-select ${1} ;; reload" ) \
         || args+=( ":open -w ${1}" )
 }
 
-
 _qa() {
-    
-    [ -n "${@}" ] && { \
+    if [ -n "${1}" ]; then 
         case ${1} in
             mlx)  _mli "${mlx_fil_x}" ;;
             mly)  _mli "${mlx_fil_y}" ;;
-            win)  shift 1 args+=(":open -w ${@}") ;;
+            win)  shift 1; args+=(":open -w ${@}") ;;
             tab)  
                   shift 1
                   args+=(":open -t ${@}") 
                   #args_startup+=( 
                 ;;
             *)    args+=(":open -t ${@}") ;;
-        esac } || args+=(":open -w")
+        esac
+    else 
+        args+=(":open -w")
+    fi
     
     args_startup+=( "${@}" ) # TODO: modify qute_bin?
     args_startup+=( ":open ${1}" )
