@@ -1,6 +1,6 @@
 #!/bin/env bash
-# author: iarom madden mail@iarom.org
-# qutebrowser launcher
+# iarom madden mail@iarom.org
+# qutebrowser profile launcher and qb as mutt viewer
 
 
 # init ########################################
@@ -17,12 +17,15 @@ _init() {
     args_startup=() 
     #soc_ipc="$(echo ${XDG_RUNTIME_DIR}/qutebrowser/*)"
     soc_ipc="${XDG_RUNTIME_DIR}/qutebrowser/ipc-$(echo -n "$USER" | md5sum | cut -d' ' -f1)"
+    dat_dir="${XDG_DATA_HOME}/qutebrowser"
     cac_dir=""
     cfg_fil=""
     cac_dir_x="/home/$USER/.cache/qutebrowserx"
     cac_dir_m="/home/$USER/.cache/qutebrowserm"
-    config_x="$HOME/.config/qutebrowser/cfx.py"
-    config_m="$HOME/.config/qutebrowser/cfm.py"
+    config_x="$HOME/.config/qutebrowser/profile-x.py"
+    config_m="$HOME/.config/qutebrowser/profile-m.py"
+    declare -rg mlx_fil_x="file:///run/user/$UID/mutt/mlx.html"
+    declare -rg mlx_fil_y="file:///run/user/$UID/mutt/mly.html"
 }
 
 _qq_ini_qt() {
@@ -38,9 +41,11 @@ _qq_ini_qt() {
   args_startup+=( '--qt-flag' 'enable-raw-draw' ) ;}
 
 _ini_profile() { # set up on new system
+    dictionaries="${HOME}/.local/share/qutebrowser/qtwebengine_dictionaries"
     /usr/share/qutebrowser/scripts/dictcli.py install en-GB
-    ln -s $HOME/.local/share/qutebrowser/qtwebengine_dictionaries $HOME/.cache/qutebrowserx/data/
-    ln -s $HOME/.local/share/qutebrowser/qtwebengine_dictionaries $HOME/.cache/qutebrowserm/data/
+    ln -s ${dictionaries} ${cac_dir_x}/data/
+    ln -s ${dictionaries} ${cac_dir_m}/data/
+    #ln -s ${dictionaries} ${cac_dir_x}/data/
 }
 
 # main #########################################
@@ -59,58 +64,58 @@ _qute_cmd() { # order of items matters; highly unstable to format innacuracies
 
 # primary instance ###################################
 
+_mli() {
+    
+    ses_fil="${dat_dir}/sessions/_autosave.yml"
+    grep -q "url: ${1}" ${ses_fil} \
+        && args+=( ":tab-select ${1} ;; reload" ) \
+        || args+=( ":open -w ${1}" )
+}
+
+
 _qa() {
-    [ -n "${@}" ] && args+=(":open -t ${@}") || args+=(":open -w")
-
-    # TODO: modify qute_bin?
-    args_startup+=( "${@}" )
+    
+    [ -n "${@}" ] && { \
+        case ${1} in
+            mlx)  _mli "${mlx_fil_x}" ;;
+            mly)  _mli "${mlx_fil_y}" ;;
+            win)  shift 1 args+=(":open -w ${@}") ;;
+            tab)  
+                  shift 1
+                  args+=(":open -t ${@}") 
+                  #args_startup+=( 
+                ;;
+            *)    args+=(":open -t ${@}") ;;
+        esac } || args+=(":open -w")
+    
+    args_startup+=( "${@}" ) # TODO: modify qute_bin?
+    args_startup+=( ":open ${1}" )
+    #args_startup+=( '--override-restore' )
 
     _qute_cmd & }
 
-_qab() { # open url in new window
-    args+=(":open -w ${@}")
-    args_startup+=( "${@}" )
-    _qute_cmd & }
+
+# profile selectors ################################
+
+_qq_i() {
+    
+    cac_dir="${1}" # vars also used in mlx & mly
+    cfg_fil="${2}"
+    shift 2
+
+    args_startup+=( "--basedir"          "${cac_dir}" )
+    args_startup+=( "--config-py"        "${cfg_fil}" )
+
+    soc_ipc="$(echo ${cac_dir}/runtime/*)"
+
+    _qa ${@} ; }
 
 
-# non-default profiles / instances ################################
+# profiles #######################################
 
+_qx() { _qi "${cac_dir_x}" "${config_x}" ${@} ; }
 
-_set_socket() { soc_ipc="$(echo ${cac_dir}/runtime/*)" ;}
-
-_qq_ini() {
-
-    args_startup+=( "--basedir"          "$cac_dir" )
-    args_startup+=( "--config-py"        "$cfg_fil" )
-
-    _set_socket;}
-
-
-# profile x #######################################
-
-_qx() {
-    [ -n "${@}" ] && args+=(":open -t $@") || args+=(":open -w")
-    cac_dir="${cac_dir_x}"
-    cfg_fil="${config_x}"
-
-    _qq_ini
-    _qute_cmd;}
-
-
-# profile: mutt / mail #############################
-
-_qm() {
-    [ "${@}" ] \
-        && args+=( ":tab-select 0/1 ;; open ${@}" ) \
-        || args+=( ":open -w" )
-    args_startup+=( ":open ${@}" ) 
-    args_startup+=( '--override-restore' )
-
-    cac_dir="${cac_dir_m}"
-    cfg_fil="${config_m}"
-
-    _qq_ini
-    _qute_cmd;}
+_qm() { _qi "${cac_dir_m}" "${config_m}" ${@} ; }
 
 
 # main ####################################
@@ -120,28 +125,39 @@ _main() {
     _init
 
     case $cmd in
-        # profile a
-        w|win)            target="window"   && _qa "${@}" ;;
-        t|tab)            target="tab"      && _qa "${@}" ;;
-        c|cmd)            _qa "${@}" ;;
-        f|win.float)      _qa_float "${@}" ;; # TODO: refer to bottom
         # profile x
-        xw|xwin|x)        target="window"   && _qx ${@} ;; # dup of 'x'
-        xt|xtab)          target="tab"      && _qx ${@} ;;
+        xw|xwin|x)        _qx ${@} ;; # dup of 'x'
+        xt|xtab)          _qx ${@} ;;
         xc|xcmd)          _qx ${@} ;;
-        # profile m
-        mw|mwin)          target="window"   && _qm ${@} ;;
-        mt|mtab)          target="window"   && _qm ${@} ;;
+        # profile mail
+        mt|mtab)          _qm tab ${@} ;;
+        mw|mwin)          _qm win ${@} ;;
         mc|qmutt|m)       _qm ${@} ;;
-        # web apps # TODO: add these to eg shell aliases or i3x
-        w.gpt|gpt)        target="window"   && _qab "chat.openai.com" ;;
-        w.wa|wa|whatsapp) target="window"   && _qab "web.whatsapp.com" ;;
-        #w.xx) 	          w_xx ;;
-        # default / catch-all
+        # mail in profile a
+        my)               _qa mly ${@} ;;
+        mx)               _qa mlx ${@} ;;
+        # webapps
+        w.gpt|gpt)        _qa win "chat.openai.com" ;;
+        w.wa|wa|whatsapp) _qa win "web.whatsapp.com" ;;
+        # profile a
+        t|tab)            _qa tab "${@}" ;;
+        w|win)            _qa win "${@}" ;;
+        c|cmd)            _qa "${@}" ;;
         *)                _qa "${cmd}" "${@}" ;;
     esac }
-
+        #w.xx) 	          w_xx ;;
+        #f|win.float)      _qa_float "${@}" ;; # TODO: refer to bottom
 
 _main ${@}
 
+# Note - web apps
+# TASK: add these to eg shell aliases or i3x
+# - is there a way to feed the 'target' so the behaviour is
+# consistent whether starting up qb or using a current instance?
+# Could just set unique 'args_startup' within the 'case' within
+# _qa?
+# On second consideration, recall that 'target' is for startup
+# which always tends to assume 'window'. Considering we now
+# feed command arguments to qb via soc, the 'target' is now
+# redundant.
 
