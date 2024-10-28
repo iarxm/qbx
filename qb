@@ -1,4 +1,5 @@
 #!/bin/env bash
+
 # iarom madden mail@iarom.org
 # qutebrowser profile launcher and qb as mutt viewer
 
@@ -18,6 +19,7 @@ _init() {
     #soc_ipc="$(echo ${XDG_RUNTIME_DIR}/qutebrowser/*)"
     soc_ipc="${XDG_RUNTIME_DIR}/qutebrowser/ipc-$(echo -n "$USER" | md5sum | cut -d' ' -f1)"
     dat_dir="${XDG_DATA_HOME}/qutebrowser"
+    ses_fil="${dat_dir}/sessions/_autosave.yml"
     cac_dir=""
     cfg_fil=""
     cac_dir_x="/home/$USER/.cache/qutebrowserx"
@@ -25,28 +27,27 @@ _init() {
     config_x="$HOME/.config/qutebrowser/profile-x.py"
     config_m="$HOME/.config/qutebrowser/profile-m.py"
     declare -rg mlx_fil_x="file:///run/user/$UID/mutt/mlx.html"
-    declare -rg mlx_fil_y="file:///run/user/$UID/mutt/mly.html"
-}
+    declare -rg mlx_fil_y="file:///run/user/$UID/mutt/mly.html" ;}
 
 _qq_ini_qt() {
-  args_startup+=( '--qt-flag' 'ignore-gpu-blacklist' )
-  args_startup+=( '--qt-flag' 'enable-gpu-rasterisation' )
-  args_startup+=( '--qt-flag' 'enable-native-gpu-memory-buffers' )
-  args_startup+=( '--qt-flag' 'num-raster-threads=4' )
-  args_startup+=( '--qt-flag' 'enable-accelerated-video-decode' )
-  args_startup+=( '--qt-flag' 'enable-features=VaapiVideoDecoder' )
-  args_startup+=( '--qt-flag' 'enable-features=WebGPU' )
-  args_startup+=( '--qt-flag' 'use-gl=desktop' )
-  args_startup+=( '--qt-flag' 'enable-oop-rasterization' )
-  args_startup+=( '--qt-flag' 'enable-raw-draw' ) ;}
+    args_startup+=( '--qt-flag' 'ignore-gpu-blacklist' )
+    args_startup+=( '--qt-flag' 'enable-gpu-rasterisation' )
+    args_startup+=( '--qt-flag' 'enable-native-gpu-memory-buffers' )
+    args_startup+=( '--qt-flag' 'num-raster-threads=4' )
+    args_startup+=( '--qt-flag' 'enable-accelerated-video-decode' )
+    args_startup+=( '--qt-flag' 'enable-features=VaapiVideoDecoder' )
+    args_startup+=( '--qt-flag' 'enable-features=WebGPU' )
+    args_startup+=( '--qt-flag' 'use-gl=desktop' )
+    args_startup+=( '--qt-flag' 'enable-oop-rasterization' )
+    args_startup+=( '--qt-flag' 'enable-raw-draw' ) ;}
 
 _ini_profile() { # set up on new system
     dictionaries="${HOME}/.local/share/qutebrowser/qtwebengine_dictionaries"
     /usr/share/qutebrowser/scripts/dictcli.py install en-GB
-    ln -s ${dictionaries} ${cac_dir_x}/data/
-    ln -s ${dictionaries} ${cac_dir_m}/data/
     #ln -s ${dictionaries} ${cac_dir_x}/data/
-}
+    ln -s ${dictionaries} ${cac_dir_x}/data/
+    ln -s ${dictionaries} ${cac_dir_m}/data/ ;}
+
 
 # main #########################################
 
@@ -54,50 +55,67 @@ _ini_profile() { # set up on new system
 
 _qute_str() { "$qute_bin" "${args_startup[@]}" & }
 
-_qute_cmd() { # order of items matters; highly unstable to format innacuracies
+_qute_cmd_x() { # order of items matters; highly unstable to format innacuracies
+    [ -n "${1}" ] && args_x="${@}" || args_x=${args}
+
     printf '{"args": ["%s"], "target_arg": null, "version": "%s", "protocol_version": %d, "cwd": "%s"}\n' \
-       "${args}" \
+       "${args_x}" \
        "${qb_version}" \
        "${proto_version}" \
-       "${PWD}" | socat -lf /dev/null - UNIX-CONNECT:"${soc_ipc}" || _qute_str &
-}
+       "${PWD}" | socat -lf /dev/null - UNIX-CONNECT:"${soc_ipc}" || _qute_str & }
+
+_qute_cmd() { _qute_cmd_x ${@} ; }
+
 
 # primary instance ###################################
 
 _mli() {
-    ses_fil="${dat_dir}/sessions/_autosave.yml"
+
     grep -q "url: ${1}" ${ses_fil} \
         && args+=( ":tab-select ${1} ;; reload" ) \
-        || args+=( ":open -w ${1}" )
-}
+        || args+=( ":open -w ${1}" ) ;}
+
 
 _qa() {
+
     if [ -n "${1}" ]; then 
         case ${1} in
-            mlx)  _mli "${mlx_fil_x}" ;;
-            mly)  _mli "${mlx_fil_y}" ;;
-            win)  shift 1; args+=(":open -w ${@}") ;;
-            tab)  
-                  shift 1
-                  args+=(":open -t ${@}") 
-                  #args_startup+=( 
+            mly)
+                _qute_cmd_x ":session-save"
+                ses_fil="${dat_dir}/sessions/default_restore.yml"
+                _mli "${mlx_fil_y}" 
+                #args_startup+=( ":open ${mlx_fil_y}" )
                 ;;
-            *)    args+=(":open -t ${@}") ;;
+            mlx)
+                _mli "${mlx_fil_x}"
+                #args_startup+=( ":open ${mlx_fil_x}" )
+                ;;
+            win)
+                shift 1; args+=(":open -w ${@}")
+                ;;
+            tab)
+                shift 1
+                args+=(":open -t ${@}") 
+                #args_startup+=( 
+                ;;
+            *)
+                args+=(":open -t ${@}")
+                ;;
         esac
     else 
         args+=(":open -w")
     fi
     
-    args_startup+=( "${@}" ) # TODO: modify qute_bin?
-    args_startup+=( ":open ${1}" )
+    #args_startup+=( "${@}" ) # TODO: modify qute_bin?
     #args_startup+=( '--override-restore' )
+    args_startup+=( "${args}" )
 
     _qute_cmd & }
 
 
 # profile selectors ################################
 
-_qq_i() {
+_qi() {
     
     cac_dir="${1}" # vars also used in mlx & mly
     cfg_fil="${2}"
@@ -107,6 +125,7 @@ _qq_i() {
     args_startup+=( "--config-py"        "${cfg_fil}" )
 
     soc_ipc="$(echo ${cac_dir}/runtime/*)"
+    ses_fil="${cac_dir}/data/sessions/_autosave.yml"
 
     _qa ${@} ; }
 
@@ -135,7 +154,7 @@ _main() {
         mc|qmutt|m)       _qm ${@} ;;
         # mail in profile a
         my)               _qa mly ${@} ;;
-        mx)               _qa mlx ${@} ;;
+        mx)               _qm mlx ${@} ;;
         # webapps
         w.gpt|gpt)        _qa win "chat.openai.com" ;;
         w.wa|wa|whatsapp) _qa win "web.whatsapp.com" ;;
@@ -145,19 +164,6 @@ _main() {
         c|cmd)            _qa "${@}" ;;
         *)                _qa "${cmd}" "${@}" ;;
     esac }
-        #w.xx) 	          w_xx ;;
-        #f|win.float)      _qa_float "${@}" ;; # TODO: refer to bottom
 
 _main ${@}
-
-# Note - web apps
-# TASK: add these to eg shell aliases or i3x
-# - is there a way to feed the 'target' so the behaviour is
-# consistent whether starting up qb or using a current instance?
-# Could just set unique 'args_startup' within the 'case' within
-# _qa?
-# On second consideration, recall that 'target' is for startup
-# which always tends to assume 'window'. Considering we now
-# feed command arguments to qb via soc, the 'target' is now
-# redundant.
 
