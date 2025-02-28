@@ -11,4 +11,3 @@ install:
 	mkdir -p ${DSTDIR}${PREFIX}/bin
 	install -m 755 ${SRC} ${DSTDIR}${PREFIX}/bin
 
-

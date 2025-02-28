@@ -38,7 +38,6 @@ do
     esac
 done
 
-## COMMANDS ###################################
 
 _bookmarks_exp2html() { sed -E 's|^(\S+) ?(.*)|<a href="\1">\2</a>|' ~/.config/qutebrowser/bookmarks/urls > qutebrowser-bookmarks.html ;}
 		# export bookmarkds to a html format for cross browser importing
