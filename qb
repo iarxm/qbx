@@ -3,11 +3,10 @@
 # IAROM MADDEN mail@iarom.org
 # qutebrowser profile launcher and qb as mutt viewer
 
-
 [ -n "$1" ] && { cmd="$1" ; shift 1; }
 
-
-_init() {
+_init()
+{
     qute_bin="/usr/bin/qutebrowser"
     qb_version='3.2.1'
     proto_version=1
@@ -24,9 +23,11 @@ _init() {
     config_x="${HOME}/.config/qutebrowser/profile-x.py"
     config_m="${HOME}/.config/qutebrowser/profile-m.py"
     declare -rg mlx_fil_x="file:///run/user/${UID}/mutt/mview-x.html"
-    declare -rg mlx_fil_y="file:///run/user/${UID}/mutt/mview-y.html" ;}
+    declare -rg mlx_fil_y="file:///run/user/${UID}/mutt/mview-y.html"
+}
 
-_qq_ini_qt() {
+_qq_ini_qt()
+{
     args_startup+=( '--qt-flag' 'ignore-gpu-blacklist' )
     args_startup+=( '--qt-flag' 'enable-gpu-rasterisation' )
     args_startup+=( '--qt-flag' 'enable-native-gpu-memory-buffers' )
@@ -39,7 +40,8 @@ _qq_ini_qt() {
     args_startup+=( '--qt-flag' 'enable-raw-draw' )
 }
 
-_ini_profile() {
+_ini_profile()
+{
     # set up on new system
     dictionaries="${HOME}/.local/share/qutebrowser/qtwebengine_dictionaries"
     /usr/share/qutebrowser/scripts/dictcli.py install en-GB
@@ -48,14 +50,12 @@ _ini_profile() {
     ln -s ${dictionaries} ${cac_dir_m}/data/
 }
 
-
-# main 
-
 # factoring here was to make clear the structure of multiple layers of piping
 
 _qute_str() { "${qute_bin}" "${args_startup[@]}" & }
 
-_qute_cmd_x() {
+_qute_cmd_x()
+{
     # order of items matters; highly unstable to format innacuracies
     [ -n "${1}" ] && args_x="${@}" || args_x=${args}
 
@@ -63,24 +63,25 @@ _qute_cmd_x() {
        "${args_x}" \
        "${qb_version}" \
        "${proto_version}" \
-       "${PWD}" | socat -lf /dev/null - UNIX-CONNECT:"${soc_ipc}" || _qute_str &
+       "${PWD}" |\
+       socat -lf /dev/null - UNIX-CONNECT:"${soc_ipc}" ||\
+       _qute_str &
 }
 
 _qute_cmd() { _qute_cmd_x ${@} ; }
 
-
 # primary instance 
 
-_mli() {
-
+_mli()
+{
     grep -q "url: ${1}" ${ses_fil} \
         && args+=( ":tab-select ${1} ;; reload" ) \
         || args+=( ":open -w ${1}" )
 }
 
 
-_qa() {
-
+_qa()
+{
     if [ -n "${1}" ]; then 
         case ${1} in
             mly)
@@ -116,11 +117,10 @@ _qa() {
     _qute_cmd &
 }
 
-
 # profile selectors 
 
-_qi() {
-    
+_qi()
+{
     cac_dir="${1}" # vars also used in mlx & mly
     cfg_fil="${2}"
     shift 2
@@ -134,21 +134,18 @@ _qi() {
     _qa ${@}
 }
 
-
 # profiles 
 
 _qx() { _qi "${cac_dir_x}" "${config_x}" ${@} ; }
 
 _qm() { _qi "${cac_dir_m}" "${config_m}" ${@} ; }
 
-
-# main 
-
-_main() {
+_main()
+{
 
     _init
 
-    case $cmd in
+    case ${cmd} in
         # profile x
         xw|xwin|x)        _qx ${@} ;; # dup of 'x'
         xt|xtab)          _qx ${@} ;;
@@ -177,3 +174,8 @@ _main ${@}
 #alias qxw='qb xwin'
 #alias qxt='qb xtab'
 #alias qf='qb win.float'
+# task: make autocomple to replace aliases with args
+#alias brw-wna="qb win"
+#alias brw-wnf="qb win.float"
+#alias brw-wxa="qb x"
+#alias brw-wxf="qb x.win"
