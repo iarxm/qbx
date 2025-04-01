@@ -3,7 +3,7 @@
 # IAROM MADDEN mail@iarom.org
 # qutebrowser profile launcher and qb as mutt viewer
 
-[ -n "$1" ] && { cmd="$1" ; shift 1; }
+[ -n "${1}" ] && { cmd="${1}" ; shift 1; }
 
 _init()
 {
@@ -13,7 +13,9 @@ _init()
     args=()
     args_startup=() 
     #soc_ipc="$(echo ${XDG_RUNTIME_DIR}/qutebrowser/*)"
-    soc_ipc="${XDG_RUNTIME_DIR}/qutebrowser/ipc-$(echo -n "${USER}" | md5sum | cut -d' ' -f1)"
+    bas_dir="${XDG_RUNTIME_DIR}/qutebrowser"
+    soc_ipc="${bas_dir}/ipc-$(echo -n "${USER}" | md5sum | cut -d' ' -f1)"
+    [ -s "${soc_ipc}" ] || soc_ipc="$(echo ${bas_dir}/runtime/*)"
     dat_dir="${XDG_DATA_HOME}/qutebrowser"
     ses_fil="${dat_dir}/sessions/_autosave.yml"
     cac_dir=""

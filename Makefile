@@ -1,5 +1,5 @@
 
-SRC = qb
+SRC = qb qbd
 
 DSTDIR=
 PREFIX=/usr/local
