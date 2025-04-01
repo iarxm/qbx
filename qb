@@ -5,27 +5,29 @@
 
 [ -n "${1}" ] && { cmd="${1}" ; shift 1; }
 
-_init()
+_ini()
 {
     qute_bin="/usr/bin/qutebrowser"
     qb_version='3.2.1'
     proto_version=1
     args=()
     args_startup=() 
-    #soc_ipc="$(echo ${XDG_RUNTIME_DIR}/qutebrowser/*)"
-    bas_dir="${XDG_RUNTIME_DIR}/qutebrowser"
-    soc_ipc="${bas_dir}/ipc-$(echo -n "${USER}" | md5sum | cut -d' ' -f1)"
-    [ -s "${soc_ipc}" ] || soc_ipc="$(echo ${bas_dir}/runtime/*)"
+    bas_dir=""
+    cfg_fil=""
     dat_dir="${XDG_DATA_HOME}/qutebrowser"
     ses_fil="${dat_dir}/sessions/_autosave.yml"
-    cac_dir=""
-    cfg_fil=""
-    cac_dir_x="/home/${USER}/.cache/qutebrowserx"
-    cac_dir_m="/home/${USER}/.cache/qutebrowserm"
+
+    bas_dir_a="${XDG_RUNTIME_DIR}/qutebrowser"
+    bas_dir_x="/home/${USER}/.cache/qutebrowserx"
+    bas_dir_m="/home/${USER}/.cache/qutebrowserm"
     config_x="${HOME}/.config/qutebrowser/profile-x.py"
     config_m="${HOME}/.config/qutebrowser/profile-m.py"
     declare -rg mlx_fil_x="file:///run/user/${UID}/mutt/mview-x.html"
     declare -rg mlx_fil_y="file:///run/user/${UID}/mutt/mview-y.html"
+    
+    #soc_ipc="$(echo ${XDG_RUNTIME_DIR}/qutebrowser/*)"
+    soc_ipc="${bas_dir}/ipc-$(echo -n "${USER}" | md5sum | cut -d' ' -f1)"
+    [ -s "${soc_ipc}" ] || soc_ipc="$(echo ${bas_dir}/runtime/*)"
 }
 
 _qq_ini_qt()
@@ -47,9 +49,9 @@ _ini_profile()
     # set up on new system
     dictionaries="${HOME}/.local/share/qutebrowser/qtwebengine_dictionaries"
     /usr/share/qutebrowser/scripts/dictcli.py install en-GB
-    #ln -s ${dictionaries} ${cac_dir_x}/data/
-    ln -s ${dictionaries} ${cac_dir_x}/data/
-    ln -s ${dictionaries} ${cac_dir_m}/data/
+    #ln -s ${dictionaries} ${bas_dir_x}/data/
+    ln -s ${dictionaries} ${bas_dir_x}/data/
+    ln -s ${dictionaries} ${bas_dir_m}/data/
 }
 
 # factoring here was to make clear the structure of multiple layers of piping
@@ -71,6 +73,11 @@ _qute_cmd_x()
 }
 
 _qute_cmd() { _qute_cmd_x ${@} ; }
+
+#_qute_d()
+#{
+    #todo - daemon start
+#}
 
 # primary instance 
 
@@ -123,51 +130,53 @@ _qa()
 
 _qi()
 {
-    cac_dir="${1}" # vars also used in mlx & mly
-    cfg_fil="${2}"
-    shift 2
-
-    args_startup+=( "--basedir"          "${cac_dir}" )
+    args_startup+=( "--basedir"          "${bas_dir}" )
     args_startup+=( "--config-py"        "${cfg_fil}" )
 
-    soc_ipc="$(echo ${cac_dir}/runtime/*)"
-    ses_fil="${cac_dir}/data/sessions/_autosave.yml"
+    soc_ipc="$(echo ${bas_dir}/runtime/*)"
+    ses_fil="${bas_dir}/data/sessions/_autosave.yml"
 
     _qa ${@}
 }
 
 # profiles 
 
-_qx() { _qi "${cac_dir_x}" "${config_x}" ${@} ; }
+_qx()
+{
+    bas_dir="${bas_dir_x}"
+    cfg_fil="${config_x}"
+    _qi   ${@}
+}
 
-_qm() { _qi "${cac_dir_m}" "${config_m}" ${@} ; }
+_qm()
+{
+    bas_dir="${bas_dir_m}"
+    cfg_fil="${config_m}"
+    _qi   ${@}
+}
 
 _main()
 {
-
-    _init
+    _ini
 
     case ${cmd} in
-        # profile x
         xw|xwin|x)        _qx ${@} ;; # dup of 'x'
         xt|xtab)          _qx ${@} ;;
         xc|xcmd)          _qx ${@} ;;
-        # profile mail
         mt|mtab)          _qm tab ${@} ;;
         mw|mwin)          _qm win ${@} ;;
         mc|qmutt|m)       _qm ${@} ;;
-        # mail in profile a
-        my)               _qa mly ${@} ;;
         mx)               _qm mlx ${@} ;;
-        # webapps
+        my)               _qa mly ${@} ;;
         w.gpt|gpt)        _qa win "chat.openai.com" ;;
         w.wa|wa|whatsapp) _qa win "web.whatsapp.com" ;;
-        # profile a
+
         t|tab)            _qa tab "${@}" ;;
         w|win)            _qa win "${@}" ;;
         c|cmd)            _qa "${@}" ;;
         *)                _qa "${cmd}" "${@}" ;;
-    esac }
+    esac
+}
 
 _main ${@}
 
