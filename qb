@@ -1,47 +1,34 @@
 #!/bin/env bash
 
-# IAROM MADDEN mail@iarom.org
-# qutebrowser profile launcher and qb as mutt viewer
+# iarom mail@iarom.org
+# qb launcher with mutt viewer extension
 
 [ -n "${1}" ] && { cmd="${1}" ; shift 1; }
 
-_ini()
+_i()
 {
-    qute_bin="/usr/bin/qutebrowser"
-    qb_version='3.2.1'
-    proto_version=1
-    args=()
-    args_startup=() 
-    bas_dir=""
-    cfg_fil=""
-    dat_dir="${XDG_DATA_HOME}/qutebrowser"
-    ses_fil="${dat_dir}/sessions/_autosave.yml"
-
-    bas_dir_a="${XDG_RUNTIME_DIR}/qutebrowser"
-    bas_dir_x="/home/${USER}/.cache/qutebrowserx"
-    bas_dir_m="/home/${USER}/.cache/qutebrowserm"
-    config_x="${HOME}/.config/qutebrowser/profile-x.py"
-    config_m="${HOME}/.config/qutebrowser/profile-m.py"
+    declare -rg qute_bin="/usr/bin/qutebrowser"
+    declare -rg qb_version='3.2.1'
+    declare -rg proto_version=1
+    declare -g args=()
+    declare -g args_startup=() 
+    declare -g bas_dir=""
+    declare -g cfg_fil=""
+    declare -g dat_dir="${XDG_DATA_HOME}/qutebrowser"
+    declare -g ses_fil="${dat_dir}/sessions/_autosave.yml"
+    declare -rg cfg_qbx="${XDG_CONFIG_HOME}/.config/qutebrowser/qbx.cfg"
+    declare -rg bas_dir_a="${XDG_RUNTIME_DIR}/qutebrowser"
+    
+    declare -rg config_x="${HOME}/.config/qutebrowser/profile-x.py"
+    declare -rg bas_dir_x="/home/${USER}/.cache/qubx"
+    declare -rg config_m="${HOME}/.config/qutebrowser/profile-m.py"
+    declare -rg bas_dir_m="/home/${USER}/.cache/qubm"
     declare -rg mlx_fil_x="file:///run/user/${UID}/mutt/mview-x.html"
     declare -rg mlx_fil_y="file:///run/user/${UID}/mutt/mview-y.html"
     
     #soc_ipc="$(echo ${XDG_RUNTIME_DIR}/qutebrowser/*)"
-    soc_ipc="${bas_dir}/ipc-$(echo -n "${USER}" | md5sum | cut -d' ' -f1)"
-    [ -s "${soc_ipc}" ] || soc_ipc="$(echo ${bas_dir}/runtime/*)"
-}
-
-_qq_ini_qt()
-{
-    args_startup+=( '--qt-flag' 'ignore-gpu-blacklist' )
-    args_startup+=( '--qt-flag' 'enable-gpu-rasterisation' )
-    args_startup+=( '--qt-flag' 'enable-native-gpu-memory-buffers' )
-    args_startup+=( '--qt-flag' 'num-raster-threads=4' )
-    args_startup+=( '--qt-flag' 'enable-accelerated-video-decode' )
-    args_startup+=( '--qt-flag' 'enable-features=VaapiVideoDecoder' )
-    args_startup+=( '--qt-flag' 'enable-features=WebGPU' )
-    args_startup+=( '--qt-flag' 'use-gl=desktop' )
-    args_startup+=( '--qt-flag' 'enable-oop-rasterization' )
-    args_startup+=( '--qt-flag' 'enable-raw-draw' )
+    soc_ipc="${bas_dir_a}/ipc-$(echo -n "${USER}" | md5sum | cut -d' ' -f1)"
+    [ -S "${soc_ipc}" ] || soc_ipc="$(echo ${bas_dir}/runtime/*)"
 }
 
 _ini_profile()
@@ -54,15 +41,17 @@ _ini_profile()
     ln -s ${dictionaries} ${bas_dir_m}/data/
 }
 
-# factoring here was to make clear the structure of multiple layers of piping
+# factoring to make clear the structure of multiple layers of piping
 
 _qute_str() { "${qute_bin}" "${args_startup[@]}" & }
 
 _qute_cmd_x()
 {
-    # order of items matters; highly unstable to format innacuracies
     [ -n "${1}" ] && args_x="${@}" || args_x=${args}
+    #args_startup+=( "${@}" ) # TODO: modify qute_bin?
+    #args_startup+=( '--override-restore' )
 
+    # order of items matters; highly unstable to format innacuracies
     printf '{"args": ["%s"], "target_arg": null, "version": "%s", "protocol_version": %d, "cwd": "%s"}\n' \
        "${args_x}" \
        "${qb_version}" \
@@ -74,20 +63,23 @@ _qute_cmd_x()
 
 _qute_cmd() { _qute_cmd_x ${@} ; }
 
-#_qute_d()
-#{
-    #todo - daemon start
-#}
-
-# primary instance 
+_qute_d()
+{
+    # - [ ] daemon start
+    # - [ ] multi profile daemon implementation
+    # - [ ] copy data to runtime tmp filesystem for quicker speed
+    #"${qute_bin}" -B=${XDG_RUNTIME_DIR}/qutebrowser --nowindow
+    exec "${qute_bin}" --nowindow
+}
 
 _mli()
 {
-    grep -q "url: ${1}" ${ses_fil} \
-        && args+=( ":tab-select ${1} ;; reload" ) \
-        || args+=( ":open -w ${1}" )
+    if grep -q "url: ${1}" ${ses_fil}; then
+        args+=( ":tab-select ${1} ;; reload" )
+    else
+        args+=( ":open -w ${1}" )
+    fi
 }
-
 
 _qa()
 {
@@ -97,39 +89,55 @@ _qa()
                 _qute_cmd_x ":session-save"
                 ses_fil="${dat_dir}/sessions/default_restore.yml"
                 _mli "${mlx_fil_y}" 
-                #args_startup+=( ":open ${mlx_fil_y}" )
+                args_startup+=( "${args}" )
                 ;;
             mlx)
                 _mli "${mlx_fil_x}"
-                #args_startup+=( ":open ${mlx_fil_x}" )
+                args_startup+=( "${args}" )
                 ;;
             win)
-                shift 1; args+=(":open -w ${@}")
+                shift 1
+                args+=(":open -w ${@}")
+                args_startup+=( "${args}" )
                 ;;
             tab)
                 shift 1
                 args+=(":open -t ${@}") 
-                #args_startup+=( 
+                args_startup+=( "${args}" )
+                ;;
+            fil)
+                sleep "0.2"
+                args+=(":cmd-set-text -s :open ")
                 ;;
             *)
-                args+=(":open -t ${@}")
+                args+=(":open -w ${@}")
                 ;;
         esac
-    else 
+    else
         args+=(":open -w")
+        args_startup+=( "${args}" )
+        _qute_cmd &
+        
+        sleep "0.4"
+        args=(":cmd-set-text -s :open ")
     fi
-    
-    #args_startup+=( "${@}" ) # TODO: modify qute_bin?
-    #args_startup+=( '--override-restore' )
-    args_startup+=( "${args}" )
 
     _qute_cmd &
 }
 
-# profile selectors 
-
-_qi()
+_q()
 {
+    case ${1} in
+        x)
+            bas_dir="${bas_dir_x}"
+            cfg_fil="${config_x}"
+            ;;
+        m)
+            bas_dir="${bas_dir_m}"
+            cfg_fil="${config_m}"
+            ;;
+    esac
+    
     args_startup+=( "--basedir"          "${bas_dir}" )
     args_startup+=( "--config-py"        "${cfg_fil}" )
 
@@ -139,54 +147,48 @@ _qi()
     _qa ${@}
 }
 
-# profiles 
-
-_qx()
+_m()
 {
-    bas_dir="${bas_dir_x}"
-    cfg_fil="${config_x}"
-    _qi   ${@}
-}
-
-_qm()
-{
-    bas_dir="${bas_dir_m}"
-    cfg_fil="${config_m}"
-    _qi   ${@}
-}
-
-_main()
-{
-    _ini
+    _i
 
     case ${cmd} in
-        xw|xwin|x)        _qx ${@} ;; # dup of 'x'
-        xt|xtab)          _qx ${@} ;;
-        xc|xcmd)          _qx ${@} ;;
-        mt|mtab)          _qm tab ${@} ;;
-        mw|mwin)          _qm win ${@} ;;
-        mc|qmutt|m)       _qm ${@} ;;
-        mx)               _qm mlx ${@} ;;
-        my)               _qa mly ${@} ;;
-        w.gpt|gpt)        _qa win "chat.openai.com" ;;
-        w.wa|wa|whatsapp) _qa win "web.whatsapp.com" ;;
-
+        x)                _q x "${@}" ;;
+        m)                _q m "${@}" ;;
+        mx)               _q m mlx "${@}" ;;
+        my)               _q m mly "${@}" ;;
         t|tab)            _qa tab "${@}" ;;
         w|win)            _qa win "${@}" ;;
         c|cmd)            _qa "${@}" ;;
+        u)                . ${cfg} && ${@} ;;
+        d|daemon)         _qute_d ;;
+            # url shortcuts can be opened via feeding a quickmark label to qa *
         *)                _qa "${cmd}" "${@}" ;;
     esac
 }
 
-_main ${@}
+_m ${@}
 
-# from aliases; convert to autocomplete shortcuts
+# from aliases;
+# - [ ] convert to autocomplete shortcuts
 #alias qx='qb xwin'
 #alias qxw='qb xwin'
 #alias qxt='qb xtab'
 #alias qf='qb win.float'
-# task: make autocomple to replace aliases with args
 #alias brw-wna="qb win"
 #alias brw-wnf="qb win.float"
 #alias brw-wxa="qb x"
 #alias brw-wxf="qb x.win"
+_qq_ini_qt()
+{
+    # can be set via qutebrowser config files now
+    args_startup+=( '--qt-flag' 'ignore-gpu-blacklist' )
+    args_startup+=( '--qt-flag' 'enable-gpu-rasterisation' )
+    args_startup+=( '--qt-flag' 'enable-native-gpu-memory-buffers' )
+    args_startup+=( '--qt-flag' 'num-raster-threads=4' )
+    args_startup+=( '--qt-flag' 'enable-accelerated-video-decode' )
+    args_startup+=( '--qt-flag' 'enable-features=VaapiVideoDecoder' )
+    args_startup+=( '--qt-flag' 'enable-features=WebGPU' )
+    args_startup+=( '--qt-flag' 'use-gl=desktop' )
+    args_startup+=( '--qt-flag' 'enable-oop-rasterization' )
+    args_startup+=( '--qt-flag' 'enable-raw-draw' )
+}
