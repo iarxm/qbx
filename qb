@@ -57,11 +57,14 @@ _qute_cmd_x()
        "${qb_version}" \
        "${proto_version}" \
        "${PWD}" |\
-       socat -lf /dev/null - UNIX-CONNECT:"${soc_ipc}" ||\
-       _qute_str &
+       socat -lf /dev/null - UNIX-CONNECT:"${soc_ipc}" \
+        || return 1
 }
 
-_qute_cmd() { _qute_cmd_x ${@} ; }
+_qute_cmd()
+{ 
+    _qute_cmd_x ${@} || _qute_str &
+}
 
 _qute_d()
 {
@@ -93,31 +96,26 @@ _qa()
                 ;;
             mlx)
                 _mli "${mlx_fil_x}"
-                args_startup+=( "${args}" )
+                args_startup+=( "${@}" )
                 ;;
             win)
                 shift 1
                 args+=(":open -w ${@}")
-                args_startup+=( "${args}" )
+                args_startup+=( "${@}" )
                 ;;
             tab)
                 shift 1
                 args+=(":open -t ${@}") 
-                args_startup+=( "${args}" )
-                ;;
-            fil)
-                sleep "0.2"
-                args+=(":cmd-set-text -s :open ")
+                args_startup+=( "${@}" )
                 ;;
             *)
                 args+=(":open -w ${@}")
+                args_startup+=( "${@}" )
                 ;;
         esac
     else
         args+=(":open -w")
-        args_startup+=( "${args}" )
-        _qute_cmd &
-        
+        _qute_cmd_x
         sleep "0.4"
         args=(":cmd-set-text -s :open ")
     fi
