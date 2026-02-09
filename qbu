@@ -3,19 +3,35 @@
 blocked="$HOME/.config/qutebrowser/blocked-hosts"
 blockls="$HOME/.config/qutebrowser/blocked-hostsls"
 
-_block_enable () {
-  [ -f "$blocked" ] && echo "already enabled" && exit 0
-  [ -f "$blockls" ] && cp blocked-hosts.txt blocked-hosts && echo "OK: host blocking enabled" && exit 0
-  echo "ERROR: blocked-hosts.txt not found."; exit -1 ;}
+_block_enable()
+{
+  [ -f "$blocked" ] && \
+      echo "already enabled" && \
+      exit 0
+  [ -f "$blockls" ] && \
+      cp blocked-hosts.txt blocked-hosts && \
+      echo "OK: host blocking enabled" && \
+      exit 0
+  echo "ERROR: blocked-hosts.txt not found."
+  exit -1
+}
 
-_block_disable () {
-  [ -f "$blocked" ] && rm -f $blocked && echo "blocking disabled"
-  echo "OK: host blocking already disabled"; exit 0 ;}
+_block_disable()
+{
+  [ -f "$blocked" ] && \
+      rm -f $blocked && \
+      echo "blocking disabled"
+  echo "OK: host blocking already disabled"
+  exit 0
+}
 
-_block_toggle () {
-  [ -f "$blocked" ] && block_disable || block_enable ;}
+_block_toggle()
+{
+  [ -f "$blocked" ] && block_disable || block_enable
+}
 
-_usage() {
+_usage()
+{
     echo "$0: Update user host blocking list"
     echo
     echo "Usage: $0 [-edth]"
@@ -24,7 +40,8 @@ _usage() {
     echo "-d: disable host blocking list"
     echo "-t: toggle host blocking"
     echo "-h: print this usage text and exit"
-    exit 1 ;}
+    exit 1
+}
 
 [ $# -lt 1 ] && _usage
 
@@ -38,11 +55,13 @@ do
     esac
 done
 
-
-_bookmarks_exp2html() { sed -E 's|^(\S+) ?(.*)|<a href="\1">\2</a>|' ~/.config/qutebrowser/bookmarks/urls > qutebrowser-bookmarks.html ;}
-		# export bookmarkds to a html format for cross browser importing
+_bookmarks_exp2html()
+{ 
+    sed -E 's|^(\S+) ?(.*)|<a href="\1">\2</a>|' \
+        ~/.config/qutebrowser/bookmarks/urls > qutebrowser-bookmarks.html
+}
+# export bookmarkds to a html format for cross browser importing
 
 case $1 in
   books.export2html) _bookmarks_exp2html ;;
 esac
-

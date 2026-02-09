@@ -1,6 +1,4 @@
-
 SRC = qb
-
 DSTDIR=
 PREFIX=/usr/local
 
@@ -10,4 +8,3 @@ all:
 install:
 	mkdir -p ${DSTDIR}${PREFIX}/bin
 	install -m 755 ${SRC} ${DSTDIR}${PREFIX}/bin
-

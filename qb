@@ -3,8 +3,6 @@
 # iarom mail@iarom.org
 # qb launcher with mutt viewer extension
 
-[ -n "${1}" ] && { cmd="${1}" ; shift 1; }
-
 _i()
 {
     declare -rg qute_bin="/usr/bin/qutebrowser"
@@ -125,7 +123,11 @@ _qa()
 
 _q()
 {
-    case ${1} in
+    [ -n "${1}" ] && \
+        cmx="${1}" \
+        && shift 1
+
+    case ${cmx} in
         x)
             bas_dir="${bas_dir_x}"
             cfg_fil="${config_x}"
@@ -147,6 +149,12 @@ _q()
 
 _m()
 {
+
+    [ -n "${1}" ] && \
+        { cmd="${1}"
+            shift 1
+        }
+    
     _i
 
     case ${cmd} in
@@ -165,28 +173,3 @@ _m()
 }
 
 _m ${@}
-
-# from aliases;
-# - [ ] convert to autocomplete shortcuts
-#alias qx='qb xwin'
-#alias qxw='qb xwin'
-#alias qxt='qb xtab'
-#alias qf='qb win.float'
-#alias brw-wna="qb win"
-#alias brw-wnf="qb win.float"
-#alias brw-wxa="qb x"
-#alias brw-wxf="qb x.win"
-_qq_ini_qt()
-{
-    # can be set via qutebrowser config files now
-    args_startup+=( '--qt-flag' 'ignore-gpu-blacklist' )
-    args_startup+=( '--qt-flag' 'enable-gpu-rasterisation' )
-    args_startup+=( '--qt-flag' 'enable-native-gpu-memory-buffers' )
-    args_startup+=( '--qt-flag' 'num-raster-threads=4' )
-    args_startup+=( '--qt-flag' 'enable-accelerated-video-decode' )
-    args_startup+=( '--qt-flag' 'enable-features=VaapiVideoDecoder' )
-    args_startup+=( '--qt-flag' 'enable-features=WebGPU' )
-    args_startup+=( '--qt-flag' 'use-gl=desktop' )
-    args_startup+=( '--qt-flag' 'enable-oop-rasterization' )
-    args_startup+=( '--qt-flag' 'enable-raw-draw' )
-}
