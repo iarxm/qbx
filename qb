@@ -14,12 +14,13 @@ _i()
     declare -g cfg_fil=""
     declare -g dat_dir="${XDG_DATA_HOME}/qutebrowser"
     declare -g ses_fil="${dat_dir}/sessions/_autosave.yml"
-    declare -rg cfg_qbx="${XDG_CONFIG_HOME}/.config/qutebrowser/qbx.cfg"
     declare -rg bas_dir_a="${XDG_RUNTIME_DIR}/qutebrowser"
     
-    declare -rg config_x="${HOME}/.config/qutebrowser/profile-x.py"
+    declare -rg cfg_qbx="${XDG_CONFIG_HOME}/.config/qutebrowser/extended/qbx.cfg"
+    declare -rg config_x="${HOME}/.config/qutebrowser/extended/profile-x.py"
+    declare -rg config_m="${HOME}/.config/qutebrowser/extended/profile-m.py"
+    
     declare -rg bas_dir_x="/home/${USER}/.cache/qubx"
-    declare -rg config_m="${HOME}/.config/qutebrowser/profile-m.py"
     declare -rg bas_dir_m="/home/${USER}/.cache/qubm"
     declare -rg mlx_fil_x="file:///run/user/${UID}/mutt/mview-x.html"
     declare -rg mlx_fil_y="file:///run/user/${UID}/mutt/mview-y.html"
