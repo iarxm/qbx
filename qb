@@ -12,16 +12,21 @@ _i()
     declare -g args_startup=() 
     declare -g bas_dir=""
     declare -g cfg_fil=""
-    declare -g dat_dir="${XDG_DATA_HOME}/qutebrowser"
+
+    declare -g cfg_dir="/home/${USER}/.config/qutebrowser"
+    declare -g dat_dir="/home/${USER}/.local/share/qutebrowser"
+    declare -g cac_dir="/home/${USER}/.cache/qutebrowser"
+    declare -g run_dir="/run/user/${UID}"
+
     declare -g ses_fil="${dat_dir}/sessions/_autosave.yml"
-    declare -rg bas_dir_a="${XDG_RUNTIME_DIR}/qutebrowser"
+    declare -rg bas_dir_a="${XDG_RUNTIME_DIR}/qutebrowsex"
     
-    declare -rg cfg_qbx="${XDG_CONFIG_HOME}/.config/qutebrowser/extended/qbx.cfg"
-    declare -rg config_x="${HOME}/.config/qutebrowser/extended/profile-x.py"
-    declare -rg config_m="${HOME}/.config/qutebrowser/extended/profile-m.py"
-    
-    declare -rg bas_dir_x="/home/${USER}/.cache/qubx"
-    declare -rg bas_dir_m="/home/${USER}/.cache/qubm"
+    declare -rg cfg_qbx="${cfg_dir}/extended/qbx.cfg"
+
+    declare -rg config_x="${cfg_dir}/extended/profile-x.py"
+    declare -rg config_m="${cfg_dir}/extended/profile-m.py"
+    declare -rg bas_dir_x="${cac_dir}/qbx"
+    declare -rg bas_dir_m="${cac_dir}/qbm"
     declare -rg mlx_fil_x="file:///run/user/${UID}/mutt/mview-x.html"
     declare -rg mlx_fil_y="file:///run/user/${UID}/mutt/mview-y.html"
     
